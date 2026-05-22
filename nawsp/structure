@@ -1,0 +1,20 @@
+nawsp/
+│
+├── data/
+│   ├── raw/
+│   ├── processed/
+│
+├── notebooks/
+│
+├── src/
+│   ├── data_pipeline/
+│   ├── models/
+│   ├── services/
+│   ├── utils/
+│
+├── api/
+│
+├── frontend/
+│
+├── requirements.txt
+└── README.md

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rainfall and Crop Prediction</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-a: #eef8f3;
+            --bg-b: #dbeffc;
+            --card: #ffffff;
+            --text: #133129;
+            --muted: #4f6b63;
+            --accent: #1f7a4d;
+            --accent-2: #0f5e86;
+            --warning: #b45309;
+            --border: #d3e5dd;
+            --danger: #c84133;
+            --shadow: 0 12px 30px rgba(19, 49, 41, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Outfit", sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at 10% 10%, #f6fbf8, transparent 35%),
+                        radial-gradient(circle at 90% 20%, #edf6ff, transparent 40%),
+                        linear-gradient(120deg, var(--bg-a), var(--bg-b));
+            min-height: 100vh;
+        }
+
+        .page {
+            width: min(1200px, 94%);
+            margin: 22px auto 32px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero, .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero { padding: 24px; display: grid; gap: 8px; }
+        .hero h1 { margin: 0; font-size: clamp(1.5rem, 2vw + 1rem, 2.2rem); }
+        .hero p { margin: 0; color: var(--muted); }
+
+        .layout { display: grid; grid-template-columns: 1fr; gap: 18px; }
+        .panel { padding: 18px; }
+        .panel h2 { margin: 0 0 12px; font-size: 1.15rem; }
+
+        .inputs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        label { display: block; font-size: 0.86rem; color: var(--muted); margin-bottom: 4px; }
+
+        input, select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            font: inherit;
+            color: var(--text);
+            background: #fbfefd;
+        }
+
+        .actions, .history-controls {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .history-controls .field { min-width: 140px; }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font: inherit;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-primary { background: linear-gradient(90deg, var(--accent), #249d63); color: #fff; }
+        .btn-secondary { background: linear-gradient(90deg, var(--accent-2), #1691c8); color: #fff; }
+        .btn-warn { background: linear-gradient(90deg, var(--warning), #d97706); color: #fff; }
+        .btn-danger { background: linear-gradient(90deg, #b91c1c, #dc2626); color: #fff; }
+
+        .status { margin-top: 12px; min-height: 20px; font-weight: 500; }
+        .status.error { color: var(--danger); }
+
+        .result-box {
+            margin-top: 14px;
+            display: grid;
+            gap: 8px;
+            padding: 12px;
+            background: #f2faf7;
+            border: 1px solid #bde2d0;
+            border-radius: 12px;
+        }
+
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(110px, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .kpi { background: #f7fcfa; border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+        .kpi .label { font-size: 0.82rem; color: var(--muted); }
+        .kpi .value { margin-top: 4px; font-size: 1.05rem; font-weight: 600; }
+
+        .charts { display: grid; grid-template-columns: 1fr; gap: 18px; }
+        .chart-wrap { height: 260px; }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 860px; }
+        th, td { border-bottom: 1px solid var(--border); text-align: left; padding: 10px 8px; font-size: 0.92rem; }
+        th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: #f8fcfa; }
+
+        .top-list { margin: 0; padding-left: 18px; }
+
+        @media (min-width: 920px) {
+            .layout { grid-template-columns: 390px 1fr; align-items: start; }
+            .charts { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="hero">
+            <h1>Rainfall and Crop Prediction Dashboard</h1>
+            <p>Real-input predictions, saved history, filters, exports, and live analytics.</p>
+        </section>
+
+        <section class="layout">
+            <div class="panel">
+                <h2>Prediction Input</h2>
+                <div class="inputs">
+                    <div><label for="N">Nitrogen (N)</label><input type="number" id="N" step="0.01" required></div>
+                    <div><label for="P">Phosphorus (P)</label><input type="number" id="P" step="0.01" required></div>
+                    <div><label for="K">Potassium (K)</label><input type="number" id="K" step="0.01" required></div>
+                    <div><label for="ph">Soil pH</label><input type="number" id="ph" step="0.01" min="0" max="14" required></div>
+                    <div><label for="temperature">Temperature (C)</label><input type="number" id="temperature" step="0.01" required></div>
+                    <div><label for="humidity">Humidity (%)</label><input type="number" id="humidity" step="0.01" min="0" max="100" required></div>
+                    <div><label for="wind_speed">Wind Speed (km/h)</label><input type="number" id="wind_speed" step="0.01" min="0" required></div>
+                </div>
+                <div class="actions">
+                    <button class="btn-primary" type="button" onclick="predictCropAndRainfall()">Predict and Save</button>
+                    <button class="btn-secondary" type="button" onclick="loadSampleInput()">Use Real Dataset Sample</button>
+                </div>
+                <div id="status" class="status"></div>
+                <div id="result" class="result-box" style="display:none;"></div>
+            </div>
+
+            <div class="panel">
+                <h2>Analytics</h2>
+                <div class="kpis">
+                    <div class="kpi"><div class="label">Saved Predictions</div><div id="kpiTotal" class="value">0</div></div>
+                    <div class="kpi"><div class="label">Avg Rainfall</div><div id="kpiRain" class="value">0 mm</div></div>
+                    <div class="kpi"><div class="label">Top Crop</div><div id="kpiCrop" class="value">-</div></div>
+                </div>
+                <div class="charts" style="margin-top:14px;">
+                    <div class="chart-wrap"><canvas id="rainfallChart"></canvas></div>
+                    <div class="chart-wrap"><canvas id="cropChart"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Prediction History</h2>
+            <div class="history-controls">
+                <div class="field">
+                    <label for="historyLimit">Limit</label>
+                    <select id="historyLimit">
+                        <option value="50">50</option>
+                        <option value="100" selected>100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="historyCrop">Filter Crop</label>
+                    <input id="historyCrop" placeholder="e.g. rice">
+                </div>
+                <button class="btn-secondary" type="button" onclick="loadHistoryAndAnalytics()">Apply Filter</button>
+                <button class="btn-warn" type="button" onclick="exportHistoryCsv()">Export CSV</button>
+                <button class="btn-danger" type="button" onclick="clearHistory()">Clear History</button>
+            </div>
+            <div class="table-wrap" style="margin-top:12px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>Created At</th><th>N</th><th>P</th><th>K</th><th>Temp (C)</th><th>Humidity (%)</th><th>pH</th><th>Wind</th><th>Rainfall (mm)</th><th>Crop</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:8000";
+        let rainfallChart;
+        let cropChart;
+
+        function setStatus(message, isError = false) {
+            const status = document.getElementById("status");
+            status.textContent = message;
+            status.className = isError ? "status error" : "status";
+        }
+
+        function getNumber(id) { return parseFloat(document.getElementById(id).value); }
+        function safeNumber(value) {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
+            return Number(value).toFixed(2);
+        }
+        function getReadableError(error) {
+            if (error && error.name === "TypeError" && String(error.message || "").toLowerCase().includes("fetch")) {
+                return `Cannot connect to API at ${API_BASE}. Start backend using: cd nawsp && python -m uvicorn api.main:app --host 127.0.0.1 --port 8000`;
+            }
+            return error?.message || "Unexpected error";
+        }
+        async function getResponseError(response, fallbackMessage) {
+            try {
+                const body = await response.json();
+                return body.detail || body.message || fallbackMessage;
+            } catch (_unused) {
+                return fallbackMessage;
+            }
+        }
+
+        function validateInputs(payload) {
+            return Object.values(payload).every((value) => Number.isFinite(value));
+        }
+
+        function currentHistoryParams() {
+            const limit = document.getElementById("historyLimit").value;
+            const crop = document.getElementById("historyCrop").value.trim();
+            const params = new URLSearchParams({ limit });
+            if (crop) params.set("crop", crop);
+            return params;
+        }
+
+        async function loadSampleInput() {
+            setStatus("Loading real dataset sample...");
+            try {
+                const response = await fetch(`${API_BASE}/sample-input`);
+                if (!response.ok) throw new Error(await getResponseError(response, "Failed to fetch sample data"));
+                const sample = await response.json();
+
+                ["N", "P", "K", "temperature", "humidity", "ph", "wind_speed"].forEach((key) => {
+                    document.getElementById(key).value = sample[key];
+                });
+
+                setStatus(`Sample loaded (dataset crop: ${sample.dataset_crop_label}, rainfall: ${sample.dataset_rainfall_mm} mm)`);
+            } catch (error) {
+                setStatus(getReadableError(error), true);
+            }
+        }
+
+        async function predictCropAndRainfall() {
+            const payload = {
+                N: getNumber("N"),
+                P: getNumber("P"),
+                K: getNumber("K"),
+                temperature: getNumber("temperature"),
+                humidity: getNumber("humidity"),
+                ph: getNumber("ph"),
+                wind_speed: getNumber("wind_speed")
+            };
+
+            if (!validateInputs(payload)) {
+                setStatus("Please fill all fields with valid numeric values.", true);
+                return;
+            }
+
+            setStatus("Running prediction...");
+            try {
+                const response = await fetch(`${API_BASE}/predict`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(await getResponseError(response, "Prediction request failed"));
+                }
+
+                const data = await response.json();
+                renderResult(data);
+                setStatus("Prediction completed and saved in history.");
+                await loadHistoryAndAnalytics();
+            } catch (error) {
+                setStatus(getReadableError(error), true);
+            }
+        }
+
+        function renderResult(data) {
+            const topRecs = Array.isArray(data.top_crop_recommendations)
+                ? data.top_crop_recommendations
+                : [];
+            const topHtml = topRecs.length
+                ? `<div><strong>Top Recommendations:</strong><ol class="top-list">${topRecs.map((item) => `<li>${item.crop} (${(item.confidence * 100).toFixed(2)}%)</li>`).join("")}</ol></div>`
+                : "";
+
+            const result = document.getElementById("result");
+            result.style.display = "grid";
+            result.innerHTML = `
+                <div><strong>Recommended Crop:</strong> ${data.recommended_crop}</div>
+                <div><strong>Predicted Rainfall (dataset-adjusted):</strong> ${data.predicted_rainfall_mm} mm</div>
+                <div><strong>Rainfall Model Raw Output:</strong> ${data.rainfall_model_mm ?? "-"} mm</div>
+                <div><strong>Input Summary:</strong> N=${data.N}, P=${data.P}, K=${data.K}, pH=${data.ph}</div>
+                ${topHtml}
+            `;
+        }
+
+        async function fetchHistory() {
+            const params = currentHistoryParams();
+            const response = await fetch(`${API_BASE}/history?${params.toString()}`);
+            if (!response.ok) throw new Error(await getResponseError(response, "History load failed"));
+            return response.json();
+        }
+
+        function renderHistoryTable(history) {
+            const table = document.getElementById("historyTable");
+            table.innerHTML = "";
+
+            history.forEach((item) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.id ?? "-"}</td>
+                    <td>${item.created_at ?? "-"}</td>
+                    <td>${safeNumber(item.N)}</td>
+                    <td>${safeNumber(item.P)}</td>
+                    <td>${safeNumber(item.K)}</td>
+                    <td>${safeNumber(item.temperature)}</td>
+                    <td>${safeNumber(item.humidity)}</td>
+                    <td>${safeNumber(item.ph)}</td>
+                    <td>${safeNumber(item.wind_speed)}</td>
+                    <td>${safeNumber(item.predicted_rainfall_mm)}</td>
+                    <td>${item.recommended_crop ?? "-"}</td>
+                `;
+                table.appendChild(row);
+            });
+        }
+
+        async function fetchAnalytics() {
+            const response = await fetch(`${API_BASE}/analytics`);
+            if (!response.ok) throw new Error(await getResponseError(response, "Analytics load failed"));
+            return response.json();
+        }
+
+        function renderKpis(analytics) {
+            document.getElementById("kpiTotal").textContent = analytics.total_predictions;
+            document.getElementById("kpiRain").textContent = `${analytics.average_rainfall_mm.toFixed(2)} mm`;
+            document.getElementById("kpiCrop").textContent = analytics.top_crops[0]?.crop || "-";
+        }
+
+        function renderCharts(analytics) {
+            const labels = (analytics.latest || []).map((item) => `#${item.id}`);
+            const rainSeries = (analytics.latest || []).map((item) => Number(item.predicted_rainfall_mm) || 0);
+
+            if (rainfallChart) rainfallChart.destroy();
+            rainfallChart = new Chart(document.getElementById("rainfallChart"), {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [{
+                        label: "Predicted Rainfall (mm)",
+                        data: rainSeries,
+                        borderColor: "#1f7a4d",
+                        backgroundColor: "rgba(31, 122, 77, 0.15)",
+                        fill: true,
+                        tension: 0.25
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { x: { ticks: { maxTicksLimit: 12 } }, y: { beginAtZero: true } }
+                }
+            });
+
+            const cropLabels = (analytics.top_crops || []).map((item) => item.crop);
+            const cropValues = (analytics.top_crops || []).map((item) => item.count);
+
+            if (cropChart) cropChart.destroy();
+            cropChart = new Chart(document.getElementById("cropChart"), {
+                type: "bar",
+                data: {
+                    labels: cropLabels,
+                    datasets: [{
+                        label: "Top Crops",
+                        data: cropValues,
+                        backgroundColor: "rgba(15, 94, 134, 0.75)",
+                        borderColor: "#0f5e86",
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, precision: 0 } }
+                }
+            });
+        }
+
+        async function loadHistoryAndAnalytics() {
+            try {
+                const [history, analytics] = await Promise.all([fetchHistory(), fetchAnalytics()]);
+                renderHistoryTable(history);
+                renderKpis(analytics);
+                renderCharts(analytics);
+            } catch (error) {
+                setStatus(getReadableError(error), true);
+            }
+        }
+
+        function exportHistoryCsv() {
+            const params = currentHistoryParams();
+            window.open(`${API_BASE}/history/export?${params.toString()}`, "_blank");
+        }
+
+        async function clearHistory() {
+            if (!window.confirm("Are you sure you want to delete all prediction history?")) return;
+            try {
+                const response = await fetch(`${API_BASE}/history`, { method: "DELETE" });
+                if (!response.ok) throw new Error(await getResponseError(response, "Failed to clear history"));
+                const result = await response.json();
+                setStatus(`History cleared. Deleted rows: ${result.deleted_rows}`);
+                await loadHistoryAndAnalytics();
+            } catch (error) {
+                setStatus(getReadableError(error), true);
+            }
+        }
+
+        loadHistoryAndAnalytics();
+    </script>
+</body>
+</html>
