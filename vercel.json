@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "nawsp/api/main.py": {
+      "includeFiles": [
+        "nawsp/models/**",
+        "nawsp/data/**",
+        "nawsp/frontend/**"
+      ]
+    }
+  }
+}
