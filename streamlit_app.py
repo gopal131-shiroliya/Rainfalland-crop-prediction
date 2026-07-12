@@ -91,6 +91,13 @@ st.markdown(
         padding: .27rem .75rem; margin-bottom: .8rem; font-size: .82rem; font-weight: 600; }
       .section-title { margin: .35rem 0 .15rem; font-size: 1.2rem; font-weight: 700; color: #163c2d; }
       .section-note { color: #638071; margin-bottom: .8rem; font-size: .92rem; }
+      [data-testid="stNumberInput"] label, [data-testid="stSelectbox"] label, [data-testid="stTextInput"] label {
+        color: #244b39 !important; font-weight: 650 !important; opacity: 1 !important;
+      }
+      .nutrient-guide { display:flex; flex-wrap:wrap; gap:.55rem; margin:.5rem 0 1rem; }
+      .nutrient-guide span { background:#e8f4e9; color:#1d593b; border:1px solid #c7e1cf;
+        padding:.42rem .68rem; border-radius:10px; font-size:.84rem; }
+      .nutrient-guide b { color:#0e6540; }
       [data-testid="stForm"] { border: 1px solid #dbe7dc; border-radius: 20px; padding: 1.2rem;
         background: white; box-shadow: 0 8px 24px rgba(35, 76, 55, .06); }
       [data-testid="stMetric"] { background: white; border: 1px solid #dbe7dc; border-radius: 16px;
@@ -154,6 +161,12 @@ with left:
             st.rerun()
 
     values = st.session_state.inputs
+    st.markdown(
+        """<div class='nutrient-guide'>
+        <span><b>N = Nitrogen</b></span><span><b>P = Phosphorus</b></span><span><b>K = Potassium</b></span>
+        <span>Use values from your soil-test report</span></div>""",
+        unsafe_allow_html=True,
+    )
     with st.form("prediction_form"):
         col1, col2, col3 = st.columns(3)
         with col1:
