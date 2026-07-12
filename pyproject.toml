@@ -1,2 +1,18 @@
+[project]
+name = "agrisight-crop-intelligence"
+version = "1.0.0"
+description = "Rainfall and crop prediction dashboard API"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "fastapi",
+  "joblib",
+  "numpy",
+  "pandas",
+  "python-multipart",
+  "scikit-learn",
+  "uvicorn",
+  "xgboost",
+]
+
 [tool.vercel]
 entrypoint = "nawsp.api.main:app"
