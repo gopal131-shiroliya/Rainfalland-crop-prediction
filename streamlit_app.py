@@ -1,5 +1,6 @@
 import csv
 import random
+from datetime import datetime
 from pathlib import Path
 
 import joblib
@@ -125,6 +126,8 @@ if "inputs" not in st.session_state:
     choose_sample(crop_rows)
 if "prediction" not in st.session_state:
     st.session_state.prediction = None
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 st.markdown(
     """<section class="hero"><div class="tag">ML-POWERED AGRICULTURE DECISION SUPPORT</div>
@@ -174,6 +177,16 @@ with left:
             "crop": crop, "recommendations": recommendations, "estimated_rainfall": estimated_rainfall,
             "model_rainfall": model_rainfall, "neighbours": neighbours,
         }
+        st.session_state.history.append(
+            {
+                "ID": len(st.session_state.history) + 1,
+                "Created at": datetime.now().strftime("%d %b, %H:%M"),
+                "N": round(n_value, 2), "P": round(p_value, 2), "K": round(k_value, 2),
+                "Temperature": round(temperature, 2), "Humidity": round(humidity, 2),
+                "pH": round(ph_value, 2), "Wind": round(wind_speed, 2),
+                "Rainfall": estimated_rainfall, "Crop": crop.title(),
+            }
+        )
 
 with right:
     prediction = st.session_state.prediction
@@ -190,7 +203,52 @@ with right:
     else:
         st.markdown("<div class='result-card'><h2>Your result will appear here</h2><div class='crop' style='font-size:1.65rem'>Ready to predict</div><div class='small'>Use a real dataset sample or enter field values, then generate a recommendation.</div></div>", unsafe_allow_html=True)
 
-st.markdown("<div style='height:1.4rem'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:1.4rem'></div><div class='section-title'>Live analytics</div><div class='section-note'>Every saved prediction updates these dashboard insights.</div>", unsafe_allow_html=True)
+history_df = pd.DataFrame(st.session_state.history)
+kpi1, kpi2, kpi3 = st.columns(3)
+if history_df.empty:
+    kpi1.metric("Saved predictions", "0")
+    kpi2.metric("Average rainfall", "--")
+    kpi3.metric("Top crop", "--")
+    st.info("Generate and save a prediction to activate analytics and charts.")
+else:
+    top_crop = history_df["Crop"].mode().iat[0]
+    kpi1.metric("Saved predictions", len(history_df))
+    kpi2.metric("Average rainfall", f"{history_df['Rainfall'].mean():.2f} mm")
+    kpi3.metric("Top crop", top_crop)
+    chart_a, chart_b = st.columns(2, gap="large")
+    with chart_a:
+        st.caption("Rainfall trend by saved prediction")
+        st.line_chart(history_df.set_index("ID")[["Rainfall"]], color="#1f7a4d", height=250)
+    with chart_b:
+        st.caption("Most recommended crops")
+        crop_counts = history_df["Crop"].value_counts().rename("Predictions")
+        st.bar_chart(crop_counts, color="#167a9f", height=250)
+
+st.markdown("<div style='height:1.2rem'></div><div class='section-title'>Prediction history</div><div class='section-note'>Filter, export, or clear the predictions created in this session.</div>", unsafe_allow_html=True)
+history_controls = st.columns([1, 1.3, 1, 1])
+with history_controls[0]:
+    limit = st.selectbox("Show rows", [10, 25, 50, 100], index=1)
+with history_controls[1]:
+    crop_filter = st.text_input("Filter crop", placeholder="e.g. Rice")
+with history_controls[2]:
+    if not history_df.empty:
+        st.download_button("Download CSV", history_df.to_csv(index=False).encode("utf-8"), "prediction_history.csv", "text/csv", use_container_width=True)
+with history_controls[3]:
+    if st.button("Clear history", use_container_width=True, disabled=history_df.empty):
+        st.session_state.history = []
+        st.session_state.prediction = None
+        st.rerun()
+
+if history_df.empty:
+    st.markdown("<div class='source'>No saved predictions yet. Click <b>Generate recommendation</b> to create your first history entry.</div>", unsafe_allow_html=True)
+else:
+    filtered_history = history_df
+    if crop_filter.strip():
+        filtered_history = history_df[history_df["Crop"].str.contains(crop_filter.strip(), case=False, na=False)]
+    st.dataframe(filtered_history.tail(limit).iloc[::-1], use_container_width=True, hide_index=True)
+
+st.markdown("<div style='height:1.15rem'></div>", unsafe_allow_html=True)
 tab1, tab2 = st.tabs(["Dataset evidence", "How the model works"])
 with tab1:
     st.markdown("<div class='source'>The app reads the included Crop Recommendation dataset at runtime. The sample button fills the form with an actual row from that dataset.</div>", unsafe_allow_html=True)
