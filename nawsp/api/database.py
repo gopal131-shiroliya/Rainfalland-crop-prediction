@@ -1,8 +1,12 @@
+import os
 import sqlite3
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "predictions.db"
+# Vercel Functions are read-only except for /tmp. Local development keeps the
+# database beside the application; deployed demo history is intentionally
+# temporary and can reset when Vercel creates a new function instance.
+DB_PATH = Path("/tmp/predictions.db") if os.getenv("VERCEL") else BASE_DIR / "predictions.db"
 
 
 def get_connection():
