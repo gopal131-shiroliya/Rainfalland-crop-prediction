@@ -8,7 +8,7 @@ import joblib
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .database import get_connection, init_db
@@ -17,6 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_DIR = BASE_DIR / "models"
 DATA_DIR = BASE_DIR / "data"
 CROP_DATA_PATH = DATA_DIR / "Crop_recommendation.csv"
+FRONTEND_PATH = BASE_DIR / "frontend" / "New-Item index.html"
 
 app = FastAPI(title="Rainfall and Crop Prediction API")
 
@@ -114,9 +115,19 @@ class RainfallInput(BaseModel):
     wind_speed: float = Field(..., ge=0)
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def home():
-    return {"message": "Rainfall and Crop Prediction API is running"}
+    """Serve the dashboard and keep the API on the same deployed origin."""
+    return FileResponse(FRONTEND_PATH)
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "service": "Rainfall and Crop Prediction API",
+        "dataset_rows": len(CROP_ROWS),
+    }
 
 
 @app.get("/sample-input")

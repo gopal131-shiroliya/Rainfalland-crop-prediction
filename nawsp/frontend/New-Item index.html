@@ -214,7 +214,8 @@
     </main>
 
     <script>
-        const API_BASE = "http://127.0.0.1:8000";
+        // Same-origin API: one Render URL hosts both the polished UI and FastAPI backend.
+        const API_BASE = window.location.origin;
         let rainfallChart;
         let cropChart;
 
@@ -231,7 +232,7 @@
         }
         function getReadableError(error) {
             if (error && error.name === "TypeError" && String(error.message || "").toLowerCase().includes("fetch")) {
-                return `Cannot connect to API at ${API_BASE}. Start backend using: cd nawsp && python -m uvicorn api.main:app --host 127.0.0.1 --port 8000`;
+                return `Cannot connect to the prediction API at ${API_BASE}. Please try again in a moment.`;
             }
             return error?.message || "Unexpected error";
         }
